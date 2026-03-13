@@ -66,7 +66,8 @@ class ProviderAdapter:
         response = httpx.post(
             f"{self._base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self._api_key}"},
-            json={"model": self._chat_model, "messages": messages, "temperature": 0.2},
+            json={"model": self._chat_model,
+                  "messages": messages, "temperature": 0.2},
             timeout=45.0,
         )
         response.raise_for_status()

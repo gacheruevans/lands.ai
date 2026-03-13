@@ -19,7 +19,8 @@ class QueryOrchestrationService:
             k=4,
         )
 
-        answer, confidence = self.provider.generate_answer(payload.question, citations)
+        answer, confidence = self.provider.generate_answer(
+            payload.question, citations)
         audit_event_id, created_at = self.audit.log_event(
             question=payload.question,
             jurisdiction=payload.jurisdiction,

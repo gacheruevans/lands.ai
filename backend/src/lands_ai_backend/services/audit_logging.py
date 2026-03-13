@@ -30,7 +30,8 @@ class AuditLoggingService:
             with conn.cursor() as cur:
                 cur.execute(
                     sql,
-                    (event_id, question, jurisdiction, answer, Json(payload), confidence, created_at),
+                    (event_id, question, jurisdiction, answer,
+                     Json(payload), confidence, created_at),
                 )
             conn.commit()
 

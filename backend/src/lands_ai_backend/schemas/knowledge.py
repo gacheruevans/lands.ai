@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class IngestDocumentRequest(BaseModel):
-    source_id: str = Field(..., min_length=3, description="Stable unique source ID")
+    source_id: str = Field(..., min_length=3,
+                           description="Stable unique source ID")
     title: str = Field(..., min_length=3)
     text: str = Field(..., min_length=20)
     jurisdiction: str = Field(default="KE")
