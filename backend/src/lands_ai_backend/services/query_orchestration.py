@@ -18,6 +18,8 @@ class QueryOrchestrationService:
             question=payload.question,
             jurisdiction=payload.jurisdiction,
             k=settings.retrieval_top_k,
+            source_types=payload.source_types,
+            topics=payload.topics,
         )
         citations = retrieval.citations
         evidence_confidence = retrieval.evidence_confidence

@@ -53,7 +53,9 @@ class ProviderAdapter:
         context = "\n\n".join(
             (
                 f"[{c.source_id}::{c.chunk_id}] score={c.retrieval_score:.2f} "
-                f"matched={','.join(c.matched_terms) or 'none'} :: {c.snippet}"
+                f"source_type={c.source_type} "
+                f"matched_terms={','.join(c.matched_terms) or 'none'} "
+                f"matched_topics={','.join(c.matched_topics) or 'none'} :: {c.snippet}"
             )
             for c in citations
         )

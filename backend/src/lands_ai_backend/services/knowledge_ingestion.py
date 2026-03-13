@@ -7,7 +7,7 @@ from lands_ai_backend.schemas.knowledge import (
 from lands_ai_backend.core.config import settings
 from lands_ai_backend.services.provider_adapter import ProviderAdapter
 from lands_ai_backend.services.retrieval_rag import KnowledgeIngestionRepository
-from lands_ai_backend.services.text_processing import semantic_chunk_text
+from lands_ai_backend.services.text_processing import extract_topics, semantic_chunk_text
 
 
 class KnowledgeIngestionService:
@@ -16,6 +16,7 @@ class KnowledgeIngestionService:
 
     def ingest(self, payload: IngestDocumentRequest) -> IngestDocumentResponse:
         chunks = self._chunk_text(payload.text)
+        resolved_topics = payload.topics or extract_topics(payload.text, payload.title)
         upserts: list[dict[str, str | list[float] | dict[str, str]]] = []
 
         for index, chunk_content in enumerate(chunks, start=1):
@@ -30,6 +31,7 @@ class KnowledgeIngestionService:
                         "chunk_length": str(len(chunk_content)),
                         "jurisdiction": payload.jurisdiction,
                         "source_type": payload.source_type,
+                        "topics": resolved_topics,
                     },
                     "vector_literal": self._vector_literal(embedding),
                 }
@@ -46,6 +48,7 @@ class KnowledgeIngestionService:
         return IngestDocumentResponse(
             source_id=payload.source_id,
             chunks_created=len(upserts),
+            topics=resolved_topics,
             created_at=datetime.now(timezone.utc),
         )
 

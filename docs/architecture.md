@@ -15,6 +15,8 @@ A single FastAPI runtime hosts clearly separated modules:
 2. `retrieval_rag`
    - Embed query
    - Retrieve top-k legal/procedural chunks via pgvector
+   - Apply optional metadata filters (`source_type`, `topics`)
+   - Hybrid rerank with semantic + lexical + topic signals
    - Return ranked evidence set
 
 3. `legal_calculators`

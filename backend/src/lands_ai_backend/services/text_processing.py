@@ -7,6 +7,17 @@ STOPWORDS = {
     'the', 'their', 'this', 'to', 'what', 'when', 'where', 'which', 'with', 'you',
 }
 
+TOPIC_KEYWORDS: dict[str, set[str]] = {
+    "title-search": {"title search", "official search", "encumbrance", "caution", "restriction"},
+    "ownership": {"owner", "ownership", "proprietor", "certificate of title", "title deed"},
+    "stamp-duty": {"stamp duty", "duty", "valuation", "rate of duty"},
+    "registration": {"registration", "transfer", "land registry", "register", "instrument"},
+    "leasehold": {"leasehold", "ground rent", "unexpired term", "lease"},
+    "county-rates": {"county", "rates", "land rates", "approvals", "change of use"},
+    "land-control-board": {"land control board", "lcb", "consent"},
+    "dispute-risk": {"dispute", "caveat", "fraud", "inconsistent", "conflict"},
+}
+
 
 def normalize_text(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip()
@@ -104,3 +115,22 @@ def best_snippet(text: str, query_terms: list[str], max_chars: int = 280) -> str
     if end < len(normalized):
         snippet = f"{snippet}…"
     return snippet
+
+
+def extract_topics(text: str, title: str | None = None) -> list[str]:
+    corpus = normalize_text(f"{title or ''} {text}").lower()
+    found: list[str] = []
+    for topic, keywords in TOPIC_KEYWORDS.items():
+        if any(keyword in corpus for keyword in keywords):
+            found.append(topic)
+
+    if not found:
+        terms = tokenize_query_terms(corpus)
+        if "leasehold" in terms:
+            found.append("leasehold")
+        if "registry" in terms or "registration" in terms:
+            found.append("registration")
+        if "duty" in terms:
+            found.append("stamp-duty")
+
+    return found
