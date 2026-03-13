@@ -14,6 +14,16 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
 
+    retrieval_top_k: int = 4
+    retrieval_candidate_pool: int = 12
+    min_citation_score: float = 0.48
+    min_answer_confidence: float = 0.63
+    min_citations_required: int = 1
+
+    chunk_target_chars: int = 850
+    chunk_max_chars: int = 1100
+    chunk_overlap_sentences: int = 1
+
     database_url: str = "postgresql://postgres:postgres@localhost:5432/lands_ai"
     redis_url: str = "redis://localhost:6379/0"
 

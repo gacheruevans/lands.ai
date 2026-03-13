@@ -4,8 +4,10 @@ from lands_ai_backend.schemas.knowledge import (
     IngestDocumentRequest,
     IngestDocumentResponse,
 )
+from lands_ai_backend.core.config import settings
 from lands_ai_backend.services.provider_adapter import ProviderAdapter
 from lands_ai_backend.services.retrieval_rag import KnowledgeIngestionRepository
+from lands_ai_backend.services.text_processing import semantic_chunk_text
 
 
 class KnowledgeIngestionService:
@@ -25,6 +27,7 @@ class KnowledgeIngestionService:
                     "content": chunk_content,
                     "metadata": {
                         "chunk_index": str(index),
+                        "chunk_length": str(len(chunk_content)),
                         "jurisdiction": payload.jurisdiction,
                         "source_type": payload.source_type,
                     },
@@ -47,20 +50,13 @@ class KnowledgeIngestionService:
         )
 
     @staticmethod
-    def _chunk_text(text: str, max_chars: int = 900, overlap: int = 150) -> list[str]:
-        cleaned = " ".join(text.split())
-        if len(cleaned) <= max_chars:
-            return [cleaned]
-
-        chunks: list[str] = []
-        start = 0
-        while start < len(cleaned):
-            end = min(len(cleaned), start + max_chars)
-            chunks.append(cleaned[start:end])
-            if end == len(cleaned):
-                break
-            start = max(0, end - overlap)
-        return chunks
+    def _chunk_text(text: str) -> list[str]:
+        return semantic_chunk_text(
+            text,
+            target_chars=settings.chunk_target_chars,
+            max_chars=settings.chunk_max_chars,
+            overlap_sentences=settings.chunk_overlap_sentences,
+        )
 
     @staticmethod
     def _vector_literal(embedding: list[float]) -> str:

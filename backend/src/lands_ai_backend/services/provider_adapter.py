@@ -17,13 +17,20 @@ class ProviderAdapter:
 
     def embed_text(self, text: str) -> list[float]:
         if self._api_key:
-            return self._embed_with_openai(text)
+            try:
+                return self._embed_with_openai(text)
+            except httpx.HTTPError:
+                pass
         return self._fallback_embedding(text)
 
     def generate_answer(self, question: str, citations: list[Citation]) -> tuple[str, float]:
         if self._api_key:
-            return self._chat_with_openai(question, citations)
-        return self._fallback_answer(question, citations), 0.58
+            try:
+                return self._chat_with_openai(question, citations)
+            except httpx.HTTPError:
+                pass
+        fallback_confidence = min(0.72, 0.5 + len(citations) * 0.05)
+        return self._fallback_answer(question, citations), fallback_confidence
 
     def _embed_with_openai(self, text: str) -> list[float]:
         response = httpx.post(
@@ -43,14 +50,20 @@ class ProviderAdapter:
 
     def _chat_with_openai(self, question: str, citations: list[Citation]) -> tuple[str, float]:
         context = "\n\n".join(
-            f"[{c.source_id}::{c.chunk_id}] {c.snippet}" for c in citations
+            (
+                f"[{c.source_id}::{c.chunk_id}] score={c.retrieval_score:.2f} "
+                f"matched={','.join(c.matched_terms) or 'none'} :: {c.snippet}"
+            )
+            for c in citations
         )
         messages = [
             {
                 "role": "system",
                 "content": (
-                    "You are a Kenya property legal assistant. Use only retrieved context. "
-                    "If context is insufficient, say so explicitly."
+                    "You are a Kenya property legal assistant. Use only the retrieved context. "
+                    "Do not invent procedures, fees, timelines, or agencies. "
+                    "If the context is incomplete, explicitly say the evidence is insufficient. "
+                    "Prefer concise practical steps and mention uncertainty where appropriate."
                 ),
             },
             {
@@ -58,7 +71,8 @@ class ProviderAdapter:
                 "content": (
                     f"Question: {question}\n\n"
                     f"Retrieved context:\n{context}\n\n"
-                    "Answer in concise practical steps and avoid legal overclaims."
+                    "Answer in concise practical steps. Base each step only on the retrieved context. "
+                    "Do not cite laws that are not in the context."
                 ),
             },
         ]
@@ -73,7 +87,8 @@ class ProviderAdapter:
         response.raise_for_status()
         payload: dict[str, Any] = response.json()
         answer: str = payload["choices"][0]["message"]["content"]
-        return answer.strip(), 0.78
+        confidence = min(0.86, 0.64 + len(citations) * 0.04)
+        return answer.strip(), confidence
 
     def _fallback_embedding(self, text: str) -> list[float]:
         seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16)
@@ -87,8 +102,10 @@ class ProviderAdapter:
                 "Please provide more detail or consult a qualified advocate."
             )
         references = "; ".join(f"{c.title}" for c in citations[:3])
+        matched_terms = sorted({term for citation in citations for term in citation.matched_terms})
+        term_text = f" Relevant issues found: {', '.join(matched_terms)}." if matched_terms else ""
         return (
             f"Based on retrieved Kenyan guidance related to '{question}', begin with an official "
             f"title search, verify encumbrances, and confirm statutory fees and county requirements. "
-            f"Key references used: {references}."
+            f"Key references used: {references}.{term_text}"
         )

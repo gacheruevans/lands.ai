@@ -10,6 +10,10 @@ class Citation(BaseModel):
                           description="Chunk identifier used for retrieval")
     title: str = Field(..., description="Human-readable source title")
     snippet: str = Field(..., description="Relevant snippet returned to user")
+    retrieval_score: float = Field(..., ge=0.0, le=1.0)
+    semantic_score: float = Field(..., ge=0.0, le=1.0)
+    lexical_score: float = Field(..., ge=0.0, le=1.0)
+    matched_terms: list[str] = Field(default_factory=list)
 
 
 class QueryRequest(BaseModel):
@@ -22,6 +26,7 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     citations: list[Citation]
+    evidence_confidence: float = Field(..., ge=0.0, le=1.0)
     confidence: float = Field(..., ge=0.0, le=1.0)
     disclaimer: str
     audit_event_id: str
