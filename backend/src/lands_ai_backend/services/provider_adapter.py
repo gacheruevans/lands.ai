@@ -1,11 +1,12 @@
 import hashlib
-import random
+import math
 from typing import Any
 
 import httpx
 
 from lands_ai_backend.core.config import settings
 from lands_ai_backend.schemas.query import Citation
+from lands_ai_backend.services.text_processing import tokenize_query_terms
 
 
 class ProviderAdapter:
@@ -29,7 +30,7 @@ class ProviderAdapter:
                 return self._chat_with_openai(question, citations)
             except httpx.HTTPError:
                 pass
-        fallback_confidence = min(0.72, 0.5 + len(citations) * 0.05)
+        fallback_confidence = min(0.76, 0.56 + len(citations) * 0.06)
         return self._fallback_answer(question, citations), fallback_confidence
 
     def _embed_with_openai(self, text: str) -> list[float]:
@@ -91,9 +92,28 @@ class ProviderAdapter:
         return answer.strip(), confidence
 
     def _fallback_embedding(self, text: str) -> list[float]:
-        seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest(), 16)
-        rnd = random.Random(seed)
-        return [rnd.uniform(-1.0, 1.0) for _ in range(settings.embedding_dimensions)]
+        dimensions = settings.embedding_dimensions
+        vector = [0.0] * dimensions
+        tokens = tokenize_query_terms(text)
+
+        if not tokens:
+            digest = hashlib.sha256(text.encode("utf-8")).digest()
+            for index, byte in enumerate(digest):
+                vector[index % dimensions] += byte / 255.0
+        else:
+            for token in tokens:
+                token_hash = hashlib.sha256(token.encode("utf-8")).digest()
+                primary_index = int.from_bytes(token_hash[:4], "big") % dimensions
+                secondary_index = int.from_bytes(token_hash[4:8], "big") % dimensions
+                sign = 1.0 if token_hash[8] % 2 == 0 else -1.0
+                weight = 1.0 + min(len(token), 12) / 12.0
+                vector[primary_index] += weight
+                vector[secondary_index] += sign * weight * 0.35
+
+        norm = math.sqrt(sum(component * component for component in vector))
+        if norm == 0:
+            return vector
+        return [component / norm for component in vector]
 
     def _fallback_answer(self, question: str, citations: list[Citation]) -> str:
         if not citations:

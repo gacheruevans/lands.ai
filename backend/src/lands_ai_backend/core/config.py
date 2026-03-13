@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 4
     retrieval_candidate_pool: int = 12
     min_citation_score: float = 0.48
-    min_answer_confidence: float = 0.63
+    min_answer_confidence: float = 0.60
     min_citations_required: int = 1
 
     chunk_target_chars: int = 850
