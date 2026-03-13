@@ -1,0 +1,24 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "lands.ai backend"
+    app_version: str = "0.1.0"
+    api_prefix: str = "/api/v1"
+
+    default_llm_provider: str = "openai-compatible"
+    llm_api_key: str = ""
+    openai_api_key: str = ""
+    llm_base_url: str = "https://api.openai.com/v1"
+    chat_model: str = "gpt-4o-mini"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
+
+    database_url: str = "postgresql://postgres:postgres@localhost:5432/lands_ai"
+    redis_url: str = "redis://localhost:6379/0"
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+
+settings = Settings()
