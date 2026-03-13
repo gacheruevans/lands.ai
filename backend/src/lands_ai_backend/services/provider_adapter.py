@@ -103,8 +103,10 @@ class ProviderAdapter:
         else:
             for token in tokens:
                 token_hash = hashlib.sha256(token.encode("utf-8")).digest()
-                primary_index = int.from_bytes(token_hash[:4], "big") % dimensions
-                secondary_index = int.from_bytes(token_hash[4:8], "big") % dimensions
+                primary_index = int.from_bytes(
+                    token_hash[:4], "big") % dimensions
+                secondary_index = int.from_bytes(
+                    token_hash[4:8], "big") % dimensions
                 sign = 1.0 if token_hash[8] % 2 == 0 else -1.0
                 weight = 1.0 + min(len(token), 12) / 12.0
                 vector[primary_index] += weight
@@ -122,7 +124,8 @@ class ProviderAdapter:
                 "Please provide more detail or consult a qualified advocate."
             )
         references = "; ".join(f"{c.title}" for c in citations[:3])
-        matched_terms = sorted({term for citation in citations for term in citation.matched_terms})
+        matched_terms = sorted(
+            {term for citation in citations for term in citation.matched_terms})
         term_text = f" Relevant issues found: {', '.join(matched_terms)}." if matched_terms else ""
         return (
             f"Based on retrieved Kenyan guidance related to '{question}', begin with an official "

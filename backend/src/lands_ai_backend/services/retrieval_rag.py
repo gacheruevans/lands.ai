@@ -44,15 +44,18 @@ class RetrievalRagService:
         rows: list[dict] = []
         for conn in get_db_connection():
             with conn.cursor() as cur:
-                cur.execute(sql, (vector_literal, jurisdiction, settings.retrieval_candidate_pool))
+                cur.execute(sql, (vector_literal, jurisdiction,
+                            settings.retrieval_candidate_pool))
                 rows = cur.fetchall()
 
         ranked_candidates = []
         for row in rows:
             semantic_score = max(0.0, min(1.0, 1.0 - float(row["distance"])))
-            lexical_score, matched_terms = keyword_overlap_score(row["content"], query_terms)
+            lexical_score, matched_terms = keyword_overlap_score(
+                row["content"], query_terms)
             title_bonus = title_relevance_bonus(row["title"], query_terms)
-            retrieval_score = min(1.0, semantic_score * 0.68 + lexical_score * 0.24 + title_bonus)
+            retrieval_score = min(1.0, semantic_score *
+                                  0.68 + lexical_score * 0.24 + title_bonus)
 
             ranked_candidates.append(
                 {
@@ -80,7 +83,8 @@ class RetrievalRagService:
         source_counts: dict[str, int] = {}
         for item in ranked_candidates:
             duplicate_penalty = source_counts.get(item["source_id"], 0) * 0.08
-            adjusted_score = max(0.0, item["retrieval_score"] - duplicate_penalty)
+            adjusted_score = max(
+                0.0, item["retrieval_score"] - duplicate_penalty)
             if adjusted_score < settings.min_citation_score:
                 continue
 
@@ -96,7 +100,8 @@ class RetrievalRagService:
                     matched_terms=item["matched_terms"],
                 )
             )
-            source_counts[item["source_id"]] = source_counts.get(item["source_id"], 0) + 1
+            source_counts[item["source_id"]] = source_counts.get(
+                item["source_id"], 0) + 1
             if len(citations) >= effective_k:
                 break
 
@@ -112,8 +117,10 @@ class RetrievalRagService:
         if not citations:
             return 0.0
 
-        average_score = sum(citation.retrieval_score for citation in citations) / len(citations)
-        matched_terms = {term for citation in citations for term in citation.matched_terms}
+        average_score = sum(
+            citation.retrieval_score for citation in citations) / len(citations)
+        matched_terms = {
+            term for citation in citations for term in citation.matched_terms}
         coverage = len(matched_terms) / max(1, len(set(query_terms)))
         multi_citation_bonus = min(0.12, max(0, len(citations) - 1) * 0.04)
 

@@ -31,7 +31,8 @@ def semantic_chunk_text(
     max_chars: int = 1100,
     overlap_sentences: int = 1,
 ) -> list[str]:
-    paragraphs = [normalize_text(part) for part in re.split(r'\n\s*\n', text) if normalize_text(part)]
+    paragraphs = [normalize_text(part) for part in re.split(
+        r'\n\s*\n', text) if normalize_text(part)]
     if not paragraphs:
         normalized = normalize_text(text)
         return [normalized] if normalized else []

@@ -27,7 +27,8 @@ class QueryOrchestrationService:
             or evidence_confidence < settings.min_answer_confidence
         ):
             answer = self._low_evidence_answer(payload.question, citations)
-            confidence = min(evidence_confidence, settings.min_answer_confidence)
+            confidence = min(evidence_confidence,
+                             settings.min_answer_confidence)
         else:
             generated_answer, model_confidence = self.provider.generate_answer(
                 payload.question, citations)
