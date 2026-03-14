@@ -82,13 +82,17 @@ class RetrievalRagService:
         ranked_candidates = []
         for row in rows:
             semantic_score = max(0.0, min(1.0, 1.0 - float(row["distance"])))
-            lexical_score, matched_terms = keyword_overlap_score(row["content"], query_terms)
+            lexical_score, matched_terms = keyword_overlap_score(
+                row["content"], query_terms)
             title_bonus = title_relevance_bonus(row["title"], query_terms)
 
             metadata = row.get("metadata") or {}
-            chunk_topics = metadata.get("topics") if isinstance(metadata, dict) else []
-            chunk_topics = chunk_topics if isinstance(chunk_topics, list) else []
-            matched_topics = [topic for topic in effective_topics if topic in chunk_topics]
+            chunk_topics = metadata.get(
+                "topics") if isinstance(metadata, dict) else []
+            chunk_topics = chunk_topics if isinstance(
+                chunk_topics, list) else []
+            matched_topics = [
+                topic for topic in effective_topics if topic in chunk_topics]
             topic_bonus = min(0.12, len(matched_topics) * 0.04)
 
             retrieval_score = min(
@@ -124,7 +128,8 @@ class RetrievalRagService:
         source_counts: dict[str, int] = {}
         for item in ranked_candidates:
             duplicate_penalty = source_counts.get(item["source_id"], 0) * 0.08
-            adjusted_score = max(0.0, item["retrieval_score"] - duplicate_penalty)
+            adjusted_score = max(
+                0.0, item["retrieval_score"] - duplicate_penalty)
             if adjusted_score < settings.min_citation_score:
                 continue
 
@@ -142,11 +147,13 @@ class RetrievalRagService:
                     matched_topics=item["matched_topics"],
                 )
             )
-            source_counts[item["source_id"]] = source_counts.get(item["source_id"], 0) + 1
+            source_counts[item["source_id"]] = source_counts.get(
+                item["source_id"], 0) + 1
             if len(citations) >= effective_k:
                 break
 
-        evidence_confidence = self._evidence_confidence(citations, query_terms, effective_topics)
+        evidence_confidence = self._evidence_confidence(
+            citations, query_terms, effective_topics)
         return RetrievalOutcome(
             citations=citations,
             evidence_confidence=evidence_confidence,
@@ -162,16 +169,21 @@ class RetrievalRagService:
         if not citations:
             return 0.0
 
-        average_score = sum(citation.retrieval_score for citation in citations) / len(citations)
-        matched_terms = {term for citation in citations for term in citation.matched_terms}
+        average_score = sum(
+            citation.retrieval_score for citation in citations) / len(citations)
+        matched_terms = {
+            term for citation in citations for term in citation.matched_terms}
         coverage = len(matched_terms) / max(1, len(set(query_terms)))
         multi_citation_bonus = min(0.12, max(0, len(citations) - 1) * 0.04)
-        matched_topics = {topic for citation in citations for topic in citation.matched_topics}
-        topic_coverage = len(matched_topics) / max(1, len(set(topics))) if topics else 0.0
+        matched_topics = {
+            topic for citation in citations for topic in citation.matched_topics}
+        topic_coverage = len(matched_topics) / \
+            max(1, len(set(topics))) if topics else 0.0
 
         return min(
             1.0,
-            average_score * 0.66 + coverage * 0.2 + topic_coverage * 0.08 + multi_citation_bonus,
+            average_score * 0.66 + coverage * 0.2 +
+            topic_coverage * 0.08 + multi_citation_bonus,
         )
 
     @staticmethod
@@ -242,7 +254,8 @@ class KnowledgeIngestionRepository:
             sql_parts.append("AND s.source_type = ANY(%s)")
             params.append(source_types)
 
-        sql_parts.append("GROUP BY topic.value ORDER BY chunk_count DESC, topic.value ASC")
+        sql_parts.append(
+            "GROUP BY topic.value ORDER BY chunk_count DESC, topic.value ASC")
         sql = "\n".join(sql_parts)
 
         rows: list[dict] = []

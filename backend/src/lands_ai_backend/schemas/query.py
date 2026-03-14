@@ -39,6 +39,8 @@ class QueryResponse(BaseModel):
     citations: list[Citation]
     evidence_confidence: float = Field(..., ge=0.0, le=1.0)
     confidence: float = Field(..., ge=0.0, le=1.0)
+    online_research_used: bool = False
+    online_docs_ingested: int = 0
     disclaimer: str
     audit_event_id: str
     created_at: datetime

@@ -23,7 +23,8 @@ class KnowledgeCatalogService:
         return KnowledgeTopicsResponse(
             jurisdiction=jurisdiction,
             topics=[
-                TopicStat(topic=row["topic"], chunk_count=int(row["chunk_count"]))
+                TopicStat(topic=row["topic"],
+                          chunk_count=int(row["chunk_count"]))
                 for row in topic_rows
             ],
             source_types=[

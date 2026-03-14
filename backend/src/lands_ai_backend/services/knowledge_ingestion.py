@@ -16,7 +16,8 @@ class KnowledgeIngestionService:
 
     def ingest(self, payload: IngestDocumentRequest) -> IngestDocumentResponse:
         chunks = self._chunk_text(payload.text)
-        resolved_topics = payload.topics or extract_topics(payload.text, payload.title)
+        resolved_topics = payload.topics or extract_topics(
+            payload.text, payload.title)
         upserts: list[dict[str, str | list[float] | dict[str, str]]] = []
 
         for index, chunk_content in enumerate(chunks, start=1):

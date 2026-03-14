@@ -16,6 +16,8 @@ TOPIC_KEYWORDS: dict[str, set[str]] = {
     "county-rates": {"county", "rates", "land rates", "approvals", "change of use"},
     "land-control-board": {"land control board", "lcb", "consent"},
     "dispute-risk": {"dispute", "caveat", "fraud", "inconsistent", "conflict"},
+    "foreign-ownership": {"foreigners", "foreigner", "non-citizen", "non citizen", "alien", "foreign ownership"},
+    "land-tenure": {"tenure", "freehold", "leasehold", "usufruct", "land rights"},
 }
 
 
@@ -132,5 +134,7 @@ def extract_topics(text: str, title: str | None = None) -> list[str]:
             found.append("registration")
         if "duty" in terms:
             found.append("stamp-duty")
+        if "foreigner" in terms or "foreigners" in terms or "alien" in terms:
+            found.append("foreign-ownership")
 
     return found

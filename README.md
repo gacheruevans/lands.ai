@@ -144,6 +144,22 @@ Quality upgrades now included:
 - citation-level retrieval scores and matched query terms
 - optional query-time metadata filters (`source_types`, `topics`)
 - evidence confidence thresholds to suppress weak legal answers
+- optional online fallback research that ingests useful web references into Postgres for future queries
+
+### Online fallback behavior
+
+When local evidence is insufficient, backend can:
+1. Search online reference sources (Wikipedia API by default)
+2. Extract useful content and ingest it into the knowledge base as `web_reference`
+3. Re-run retrieval on the expanded local corpus
+
+This means important discovered context is persisted in Postgres and can improve subsequent related queries.
+
+The query response also exposes:
+- `online_research_used` (boolean)
+- `online_docs_ingested` (integer)
+
+so clients can tell when online fallback was used and whether new references were stored.
 
 ## Dockerized Deployment (Isolated)
 

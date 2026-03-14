@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     chunk_max_chars: int = 1100
     chunk_overlap_sentences: int = 1
 
+    enable_online_research: bool = True
+    online_research_max_docs: int = 3
+    online_research_min_chars: int = 180
+    online_research_timeout_seconds: float = 15.0
+    online_research_min_relevance_score: float = 0.28
+    online_research_query_suffix: str = "Kenya land property"
+    online_research_search_url: str = "https://en.wikipedia.org/w/api.php"
+    online_research_extract_url: str = "https://en.wikipedia.org/w/api.php"
+    online_research_user_agent: str = "lands.ai/0.1 (research assistant; contact: dev@lands.ai)"
+
     database_url: str = "postgresql://postgres:postgres@localhost:5432/lands_ai"
     redis_url: str = "redis://localhost:6379/0"
     cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
