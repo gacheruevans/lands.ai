@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, Query, BackgroundTasks, File, UploadFile, Form
+import json
 
 from lands_ai_backend.schemas.knowledge import (
     IngestDocumentRequest,
@@ -34,6 +35,40 @@ def ingest_document(
         source_id=payload.source_id,
         chunks_created=0, # Will be updated in background
         topics=payload.topics or [],
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+@router.post("/ingest/file", response_model=IngestDocumentResponse)
+async def ingest_document_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    source_id: str = Form(...),
+    title: str = Form(...),
+    jurisdiction: str = Form("KE"),
+    source_type: str = Form("law"),
+    topics_json: str = Form("[]"),
+    service: KnowledgeIngestionService = Depends(get_ingestion_service),
+) -> IngestDocumentResponse:
+    content = await file.read()
+    topics = json.loads(topics_json)
+    
+    # Run heavy extraction and indexing in the background
+    background_tasks.add_task(
+        service.ingest_file,
+        content,
+        source_id,
+        title,
+        jurisdiction,
+        source_type,
+        topics
+    )
+    
+    from datetime import datetime, timezone
+    return IngestDocumentResponse(
+        source_id=source_id,
+        chunks_created=0,
+        topics=topics,
         created_at=datetime.now(timezone.utc),
     )
 

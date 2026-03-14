@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { 
-  getAuditEvents, 
+  getAuditEvents,
   ingestDocument, 
+  ingestPdfDocument,
   AuditEvent, 
   IngestRequest 
 } from '../../lib/api'
@@ -19,6 +20,8 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(false)
   const [ingestStatus, setIngestStatus] = useState<string | null>(null)
+  const [ingestMode, setIngestMode] = useState<'text' | 'pdf'>('text')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   useEffect(() => {
     fetchAuditEvents()
@@ -39,7 +42,18 @@ export default function AdminDashboard() {
     setLoading(true)
     setIngestStatus('Ingesting...')
     try {
-      await ingestDocument(ingestForm)
+      if (ingestMode === 'pdf' && selectedFile) {
+        await ingestPdfDocument(
+          selectedFile,
+          ingestForm.source_id,
+          ingestForm.title,
+          ingestForm.jurisdiction,
+          ingestForm.source_type,
+          ingestForm.topics || []
+        )
+      } else {
+        await ingestDocument(ingestForm)
+      }
       setIngestStatus('Successfully queued for ingestion.')
       setIngestForm({
         source_id: '',
@@ -48,6 +62,7 @@ export default function AdminDashboard() {
         source_type: 'legal_doc',
         jurisdiction: 'KE'
       })
+      setSelectedFile(null)
       fetchAuditEvents()
     } catch (error) {
       setIngestStatus('Ingestion failed.')
@@ -119,16 +134,57 @@ export default function AdminDashboard() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase ml-1">Raw Content</label>
-                <textarea
-                  rows={8}
-                  placeholder="Paste manual or extracted text here..."
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm resize-none"
-                  value={ingestForm.text}
-                  onChange={e => setIngestForm({ ...ingestForm, text: e.target.value })}
-                  required
-                />
+              <div className="space-y-4 pt-2">
+                <div className="flex p-1 bg-slate-950/80 rounded-xl border border-slate-800 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setIngestMode('text')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${ingestMode === 'text' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    TEXT MODE
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIngestMode('pdf')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${ingestMode === 'pdf' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    PDF UPLOAD
+                  </button>
+                </div>
+
+                {ingestMode === 'text' ? (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <label className="text-xs font-semibold text-slate-500 uppercase ml-1">Raw Content</label>
+                    <textarea
+                      rows={8}
+                      placeholder="Paste manual or extracted text here..."
+                      className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm resize-none"
+                      value={ingestForm.text}
+                      onChange={e => setIngestForm({ ...ingestForm, text: e.target.value })}
+                      required={ingestMode === 'text'}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <label className="text-xs font-semibold text-slate-500 uppercase ml-1">PDF Document</label>
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        required={ingestMode === 'pdf'}
+                      />
+                      <div className={`w-full bg-slate-950/50 border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all ${selectedFile ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800 group-hover:border-slate-700'}`}>
+                        <span className="text-2xl mb-2">{selectedFile ? '📄' : '📤'}</span>
+                        <p className="text-sm font-medium text-slate-300">
+                          {selectedFile ? selectedFile.name : 'Click or drag PDF to upload'}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">Maximum size: 10MB</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <button
                 type="submit"

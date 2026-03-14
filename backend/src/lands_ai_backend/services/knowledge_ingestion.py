@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+import io
+import logging
+from pypdf import PdfReader
 
 from lands_ai_backend.schemas.knowledge import (
     IngestDocumentRequest,
@@ -8,6 +11,9 @@ from lands_ai_backend.core.config import settings
 from lands_ai_backend.services.provider_adapter import ProviderAdapter
 from lands_ai_backend.services.retrieval_rag import KnowledgeIngestionRepository
 from lands_ai_backend.services.text_processing import extract_topics, semantic_chunk_text
+
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeIngestionService:
@@ -52,6 +58,42 @@ class KnowledgeIngestionService:
             topics=resolved_topics,
             created_at=datetime.now(timezone.utc),
         )
+
+    def ingest_file(
+        self,
+        file_content: bytes,
+        source_id: str,
+        title: str,
+        jurisdiction: str = "KE",
+        source_type: str = "law",
+        topics: list[str] | None = None,
+    ) -> IngestDocumentResponse:
+        """
+        Extracts text from a PDF file and ingests it.
+        """
+        try:
+            reader = PdfReader(io.BytesIO(file_content))
+            text = ""
+            for page in reader.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n"
+            
+            if not text.strip():
+                raise ValueError("Could not extract any text from the PDF")
+
+            payload = IngestDocumentRequest(
+                source_id=source_id,
+                title=title,
+                text=text,
+                jurisdiction=jurisdiction,
+                source_type=source_type,
+                topics=topics or []
+            )
+            return self.ingest(payload)
+        except Exception as e:
+            logger.error(f"Failed to ingest PDF file {title}: {e}")
+            raise
 
     @staticmethod
     def _chunk_text(text: str) -> list[str]:
