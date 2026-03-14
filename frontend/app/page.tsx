@@ -439,7 +439,10 @@ export default function HomePage() {
             <button
               type="submit"
               disabled={loading || question.trim().length < 3}
-              className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-200 transition-all duration-300 hover:bg-brand-700 hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+              className={`absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 shadow-md ${question.trim().length >= 3
+                  ? 'bg-brand-700 text-white shadow-brand-200 hover:bg-brand-800 hover:scale-105 active:scale-95'
+                  : 'bg-blue-400 text-slate-400 cursor-not-allowed grayscale'
+                }`}
             >
               {loading ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
