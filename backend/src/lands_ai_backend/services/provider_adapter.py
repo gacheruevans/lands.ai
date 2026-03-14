@@ -1,12 +1,16 @@
 import hashlib
 import math
-from typing import Any
+import logging
+from typing import Any, Callable
 
 import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from lands_ai_backend.core.config import settings
 from lands_ai_backend.schemas.query import Citation
 from lands_ai_backend.services.text_processing import tokenize_query_terms
+
+logger = logging.getLogger(__name__)
 
 
 class ProviderAdapter:
@@ -15,28 +19,56 @@ class ProviderAdapter:
         self._base_url = settings.llm_base_url.rstrip("/")
         self._chat_model = settings.chat_model
         self._embedding_model = settings.embedding_model
+        # Embedding provider — falls back to chat provider when not separately configured
+        self._embedding_api_key = settings.embedding_api_key or self._api_key
+        self._embedding_base_url = (
+            settings.embedding_base_url or settings.llm_base_url).rstrip("/")
 
     def embed_text(self, text: str) -> list[float]:
-        if self._api_key:
-            try:
-                return self._embed_with_openai(text)
-            except httpx.HTTPError:
-                pass
-        return self._fallback_embedding(text)
+        try:
+            return self._embed_with_retry(text)
+        except Exception as e:
+            logger.error(f"All embedding attempts failed: {e}. Falling back to deterministic vector.")
+            return self._fallback_embedding(text)
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(httpx.HTTPError),
+        reraise=True
+    )
+    def _embed_with_retry(self, text: str) -> list[float]:
+        if self._embedding_api_key and "your_openai_api_key" not in self._embedding_api_key:
+            return self._embed_with_openai(text)
+        raise ValueError("No valid Embedding API key configured")
 
     def generate_answer(self, question: str, citations: list[Citation]) -> tuple[str, float]:
-        if self._api_key:
-            try:
-                return self._chat_with_openai(question, citations)
-            except httpx.HTTPError:
-                pass
-        fallback_confidence = min(0.76, 0.56 + len(citations) * 0.06)
-        return self._fallback_answer(question, citations), fallback_confidence
+        """
+        Attempts to generate an answer with primary provider, 
+        with retry logic and fallback to deterministic response.
+        """
+        try:
+            return self._generate_with_retry(question, citations)
+        except Exception as e:
+            logger.error(f"All LLM generation attempts failed: {e}")
+            fallback_confidence = min(0.76, 0.56 + len(citations) * 0.06)
+            return self._fallback_answer(question, citations), fallback_confidence
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(httpx.HTTPError),
+        reraise=True
+    )
+    def _generate_with_retry(self, question: str, citations: list[Citation]) -> tuple[str, float]:
+        if self._api_key and "your_free_key" not in self._api_key:
+            return self._chat_with_openai(question, citations)
+        raise ValueError("No valid API key configured for LLM provider")
 
     def _embed_with_openai(self, text: str) -> list[float]:
         response = httpx.post(
-            f"{self._base_url}/embeddings",
-            headers={"Authorization": f"Bearer {self._api_key}"},
+            f"{self._embedding_base_url}/embeddings",
+            headers={"Authorization": f"Bearer {self._embedding_api_key}"},
             json={"model": self._embedding_model, "input": text},
             timeout=30.0,
         )
@@ -134,3 +166,4 @@ class ProviderAdapter:
             f"title search, verify encumbrances, and confirm statutory fees and county requirements. "
             f"Key references used: {references}.{term_text}"
         )
+

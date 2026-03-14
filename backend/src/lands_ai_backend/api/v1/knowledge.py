@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
 
 from lands_ai_backend.schemas.knowledge import (
     IngestDocumentRequest,
@@ -22,9 +22,20 @@ def get_catalog_service() -> KnowledgeCatalogService:
 @router.post("/ingest", response_model=IngestDocumentResponse)
 def ingest_document(
     payload: IngestDocumentRequest,
+    background_tasks: BackgroundTasks,
     service: KnowledgeIngestionService = Depends(get_ingestion_service),
 ) -> IngestDocumentResponse:
-    return service.ingest(payload)
+    # Use background tasks to handle ingestion asynchronously
+    background_tasks.add_task(service.ingest, payload)
+    
+    # Return intermediate response immediately
+    from datetime import datetime, timezone
+    return IngestDocumentResponse(
+        source_id=payload.source_id,
+        chunks_created=0, # Will be updated in background
+        topics=payload.topics or [],
+        created_at=datetime.now(timezone.utc),
+    )
 
 
 @router.get("/topics", response_model=KnowledgeTopicsResponse)

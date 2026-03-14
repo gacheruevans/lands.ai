@@ -1,9 +1,11 @@
 from lands_ai_backend.core.config import settings
 from lands_ai_backend.schemas.query import QueryRequest, QueryResponse
 from lands_ai_backend.services.audit_logging import AuditLoggingService
+from lands_ai_backend.services.domain_guardrail import DomainGuardrail
 from lands_ai_backend.services.online_research import OnlineResearchService
 from lands_ai_backend.services.provider_adapter import ProviderAdapter
 from lands_ai_backend.services.retrieval_rag import RetrievalRagService
+from lands_ai_backend.services.suggestions import SuggestionService
 
 
 class QueryOrchestrationService:
@@ -16,6 +18,32 @@ class QueryOrchestrationService:
         self.online_research = OnlineResearchService()
 
     def answer(self, payload: QueryRequest) -> QueryResponse:
+        # 1. Scope Guardrail: Strictly enforce land/property law context
+        if not DomainGuardrail.is_in_domain(payload.question):
+            answer = (
+                f"I'm specialized specifically in Kenyan land and property law. I'm unable to answer "
+                f"off-topic queries like '{payload.question}'.\n\n"
+                "Please ask questions related to land registration, title deeds, stamp duty, "
+                "or property transactions in Kenya. You can try some of the suggested questions below."
+            )
+            audit_id, created_at = self.audit.log_event(
+                question=payload.question,
+                jurisdiction=payload.jurisdiction,
+                answer=answer,
+                citations=[],
+                confidence=0.0,
+            )
+            return QueryResponse(
+                answer=answer,
+                citations=[],
+                evidence_confidence=0.0,
+                confidence=0.0,
+                suggestions=SuggestionService.get_suggestions()[:4],
+                disclaimer="Domain Guardrail active.",
+                audit_event_id=audit_id,
+                created_at=created_at,
+            )
+
         online_docs_ingested = 0
         retrieval = self.retrieval.retrieve(
             question=payload.question,
@@ -103,14 +131,13 @@ class QueryOrchestrationService:
     def _low_evidence_answer(question: str, citations: list) -> str:
         if not citations:
             return (
-                f"I do not yet have enough grounded Kenyan legal material to answer '{question}' "
-                "with sufficient confidence. Please provide more specifics or consult an advocate "
-                "or the relevant public office."
+                f"I've searched our database and performed an online lookup, but I couldn't find specific, high-confidence Kenyan legal material to answer your question about '{question}'.\n\n"
+                "To give you a reliable answer, I'd suggest providing more details or checking our suggested topics. Alternatively, for complex legal matters, it's best to consult an advocate or visit the relevant public office (like the Land Registry)."
             )
 
         source_list = "; ".join(citation.title for citation in citations[:2])
         return (
-            f"I found partially relevant material for '{question}', but the evidence is not strong "
-            f"enough for a confident procedural answer. Review these sources first: {source_list}. "
-            "For action on a real transaction, verify details with the land registry, county office, or a qualified advocate."
+            f"I found some partially related material for '{question}', but I want to be careful not to give you a definitive procedural answer without stronger evidence.\n\n"
+            f"You might find these sources helpful for context: {source_list}.\n\n"
+            "If you're handling a real transaction, I highly recommend verifying these details with the land registry, county office, or a legal professional to ensure full compliance."
         )

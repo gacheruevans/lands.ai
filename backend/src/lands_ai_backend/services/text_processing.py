@@ -11,13 +11,15 @@ TOPIC_KEYWORDS: dict[str, set[str]] = {
     "title-search": {"title search", "official search", "encumbrance", "caution", "restriction"},
     "ownership": {"owner", "ownership", "proprietor", "certificate of title", "title deed"},
     "stamp-duty": {"stamp duty", "duty", "valuation", "rate of duty"},
-    "registration": {"registration", "transfer", "land registry", "register", "instrument"},
+    "registration": {"registration", "transfer", "land registry", "register", "instrument", "conveyancing", "conveyance"},
     "leasehold": {"leasehold", "ground rent", "unexpired term", "lease"},
     "county-rates": {"county", "rates", "land rates", "approvals", "change of use"},
     "land-control-board": {"land control board", "lcb", "consent"},
     "dispute-risk": {"dispute", "caveat", "fraud", "inconsistent", "conflict"},
     "foreign-ownership": {"foreigners", "foreigner", "non-citizen", "non citizen", "alien", "foreign ownership"},
     "land-tenure": {"tenure", "freehold", "leasehold", "usufruct", "land rights"},
+    "general-land": {"land", "property", "plot", "field", "acre", "hectare", "survey", "boundary", "map", "beacon"},
+    "legal-process": {"law", "legal", "court", "judge", "advocate", "lawyer", "solicitor", "litigation", "suit", "appeal"},
 }
 
 

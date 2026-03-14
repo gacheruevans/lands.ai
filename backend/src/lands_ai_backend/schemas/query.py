@@ -41,6 +41,7 @@ class QueryResponse(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     online_research_used: bool = False
     online_docs_ingested: int = 0
+    suggestions: list[str] = Field(default_factory=list)
     disclaimer: str
     audit_event_id: str
     created_at: datetime

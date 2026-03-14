@@ -11,8 +11,12 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     llm_base_url: str = "https://api.openai.com/v1"
     chat_model: str = "gpt-4o-mini"
+
+    # Embedding can use a different provider/key than chat (e.g. OpenAI embeddings + Groq chat)
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
+    embedding_base_url: str = ""  # defaults to llm_base_url when empty
+    embedding_api_key: str = ""   # defaults to llm_api_key when empty
 
     retrieval_top_k: int = 4
     retrieval_candidate_pool: int = 12
@@ -36,7 +40,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql://postgres:postgres@localhost:5432/lands_ai"
     redis_url: str = "redis://localhost:6379/0"
-    cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_allowed_origins: str = "*"
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore")
