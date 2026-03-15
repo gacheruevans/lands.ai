@@ -1,6 +1,6 @@
 # lands.ai frontend
 
-Next.js + Tailwind scaffold for lands.ai.
+Next.js + Tailwind application for lands.ai.
 
 ## Run (development)
 

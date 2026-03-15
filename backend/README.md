@@ -1,6 +1,6 @@
 # lands.ai backend
 
-FastAPI modular monolith scaffold.
+FastAPI modular monolith application.
 
 ## Run (development)
 
