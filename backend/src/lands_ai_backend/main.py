@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from lands_ai_backend.api.errors import register_exception_handlers
 from lands_ai_backend.api.router import api_router
 from lands_ai_backend.core.config import settings
 from lands_ai_backend.core.db import initialize_database
@@ -29,7 +30,8 @@ def create_app() -> FastAPI:
         "http://0.0.0.0:3000",
     ]
     if settings.cors_allowed_origins != "*":
-        ext_origins = [o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()]
+        ext_origins = [o.strip()
+                       for o in settings.cors_allowed_origins.split(",") if o.strip()]
         allowed_origins.extend(ext_origins)
     else:
         allowed_origins = ["*"]
@@ -41,6 +43,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    register_exception_handlers(app)
 
     app.include_router(api_router, prefix=settings.api_prefix)
 
