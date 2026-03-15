@@ -1,5 +1,8 @@
 {
     "chat.tools.terminal.autoApprove": {
         "docker exec": true
-    }
+    },
+    "python.analysis.extraPaths": [
+        "backend/src"
+    ]
 }
