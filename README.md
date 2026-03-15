@@ -26,7 +26,7 @@ Kenya land and property legal assistant with grounded retrieval, citations, and 
     - legal disclaimer
     - audit event ID and timestamp
 
-### Fallback online research (optional)
+### Fallback online research
 
 When local evidence is weak and online fallback is enabled, the backend can:
 
