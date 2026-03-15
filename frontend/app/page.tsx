@@ -441,7 +441,7 @@ export default function HomePage() {
               disabled={loading || question.trim().length < 3}
               className={`absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 shadow-md ${question.trim().length >= 3
                   ? 'bg-brand-700 text-white shadow-brand-200 hover:bg-brand-800 hover:scale-105 active:scale-95'
-                  : 'bg-blue-400 text-slate-400 cursor-not-allowed grayscale'
+                  : 'bg-blue-400 text-white cursor-not-allowed'
                 }`}
             >
               {loading ? (
