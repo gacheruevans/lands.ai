@@ -2,3 +2,10 @@ node_modules
 .next
 .env.local
 .git
+coverage
+dist
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.DS_Store

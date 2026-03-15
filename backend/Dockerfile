@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -7,6 +7,18 @@ WORKDIR /app
 
 COPY pyproject.toml /app/pyproject.toml
 COPY src /app/src
+
+
+FROM base AS test
+
+COPY tests /app/tests
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e ".[dev]"
+
+CMD ["python", "-m", "pytest", "-q"]
+
+
+FROM base AS runtime
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
