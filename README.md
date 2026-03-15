@@ -148,6 +148,69 @@ lands.ai/
 2. Configure `NEXT_PUBLIC_API_BASE_URL`.
 3. Run Next.js app.
 
+## Testing
+
+The project now includes automated tests for both backend and frontend.
+
+### Backend tests (pytest)
+
+From `backend/`:
+
+1. Ensure your virtual environment is active.
+2. Install backend package with test extras:
+    - `python -m pip install -e '.[dev]'`
+3. Run tests:
+    - `python -m pytest -q`
+
+What is covered:
+
+- Unit tests for calculator logic and error payload formatting
+- Integration tests for API routes (success + graceful failure envelopes)
+
+### Frontend tests (Vitest + Testing Library)
+
+From `frontend/`:
+
+1. Install dependencies:
+    - `npm install`
+2. Run tests once:
+    - `npm test`
+3. Optional watch mode:
+    - `npm run test:watch`
+
+What is covered:
+
+- Unit tests for API client request/response + error parsing behavior
+- Integration tests for admin ingestion flow (success + graceful error display)
+
+### Quick run from project root
+
+If you prefer running from repo root:
+
+- Backend: `cd backend && python -m pytest -q`
+- Frontend: `cd frontend && npm test`
+
+### Run tests with Docker (build + execute)
+
+The Docker setup now includes dedicated **test build targets** and Compose test services:
+
+- `backend-test` (uses `backend/Dockerfile` target `test`)
+- `frontend-test` (uses `frontend/Dockerfile` target `test`)
+
+From repo root:
+
+- Run backend tests in Docker:
+    - `docker compose --profile test run --rm backend-test`
+- Run frontend tests in Docker:
+    - `docker compose --profile test run --rm frontend-test`
+- Run both test services via profile:
+    - `docker compose --profile test up --build --abort-on-container-exit backend-test frontend-test`
+
+Notes:
+
+- Runtime app services still build with `runtime` targets.
+- Test services are isolated behind Compose `test` profile and won’t start during normal `docker compose up`.
+
 ### Docker Compose
 
 `docker-compose.yml` provisions:
