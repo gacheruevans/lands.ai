@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
+  ApiClientError,
   getAuditEvents,
   ingestDocument, 
   ingestPdfDocument,
@@ -65,7 +66,8 @@ export default function AdminDashboard() {
       setSelectedFile(null)
       fetchAuditEvents()
     } catch (error) {
-      setIngestStatus('Ingestion failed.')
+      const message = error instanceof ApiClientError ? error.message : 'Ingestion failed.'
+      setIngestStatus(`Ingestion failed: ${message}`)
       console.error(error)
     } finally {
       setLoading(false)
