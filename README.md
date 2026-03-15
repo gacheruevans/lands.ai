@@ -1,188 +1,164 @@
 # lands.ai
 
-Kenya Land Search & Property Legal AI Agent.
+Kenya land and property legal assistant with grounded retrieval, citations, and admin ingestion tools.
 
-- Backend: Python + FastAPI
-- Frontend: Next.js + TailwindCSS
-- AI Layer: LLM API (Gemini / OpenAI / Claude)
-- Data Layer: PostgreSQL + pgvector
-- Knowledge Sources: Kenyan land law, eCitizen procedures, county building permits, property rates, stamp duty, land registry rules
+## What the system does today
 
-## Architecture Decision
+`lands.ai` is a modular-monolith application with:
 
-For MVP and early scale, lands.ai adopts a **modular monolith** architecture.
+- **Backend:** FastAPI (`backend/`) for query orchestration, RAG retrieval, ingestion, calculators, and audit logging.
+- **Frontend:** Next.js + Tailwind (`frontend/`) for end-user Q&A and admin operations.
+- **Data:** PostgreSQL + `pgvector` for sources/chunks/embeddings and audit events.
+- **AI provider adapter:** configurable OpenAI-compatible LLM/embedding providers with deterministic fallback behavior for local development.
 
-Why this approach:
-- Faster to ship and iterate
-- Lower infrastructure and operations complexity
-- Easier legal traceability and auditability
-- Better debugging for RAG and citation quality
+## Core capabilities
 
-Microservices are deferred until objective scaling triggers are met.
+### Legal Q&A with citations
 
-## System Architecture (Current Target)
+- Accepts Kenya land/property legal questions.
+- Enforces a **domain guardrail** (off-topic questions are declined with guidance).
+- Retrieves relevant local evidence from knowledge chunks.
+- Applies evidence confidence checks and citation thresholds.
+- Generates response with:
+    - answer text
+    - citations and retrieval metadata
+    - evidence confidence + final confidence
+    - legal disclaimer
+    - audit event ID and timestamp
 
-```text
-User (Browser)
-    │
-    ▼
-Next.js Frontend (TailwindCSS UI)
-    │
-    ▼
-FastAPI Backend (Modular Monolith)
-    ├── Query Orchestration
-    ├── Retrieval / RAG Service
-    ├── Legal Calculators (stamp duty, rates)
-    ├── Knowledge Base Admin / Ingestion
-    ├── Audit + Citation Logging
-    ├── LLM Provider Adapter
-    └── Async Jobs Interface
-          │
-          ├── PostgreSQL (source docs, metadata, audit events)
-          ├── pgvector (embeddings + similarity search)
-          ├── Redis (queue/cache)
-          └── External APIs (LLM provider, eCitizen integrations)
+### Fallback online research (optional)
+
+When local evidence is weak and online fallback is enabled, the backend can:
+
+1. Search online references (Wikipedia API by default)
+2. Ingest relevant extracts as `web_reference`
+3. Re-run retrieval on expanded local knowledge
+
+Response payload includes:
+
+- `online_research_used`
+- `online_docs_ingested`
+
+### Knowledge ingestion (admin)
+
+- Ingests text documents.
+- Ingests PDF uploads.
+- Uses semantic chunking + topic extraction.
+- Queues ingestion work via background tasks and returns immediate acknowledgment.
+
+### Filtered retrieval
+
+- Query supports filters by:
+    - `source_types`
+    - `topics`
+- Frontend persists selected filters in URL params for shareable sessions.
+
+### Legal calculators
+
+- Stamp duty calculator (`urban`, `rural`, `agricultural` rates).
+- Land rates estimator (county-based placeholder logic).
+
+### Audit trail
+
+- Persists each query/response event with confidence and citations.
+- Admin UI can list recent events.
+
+## API surface
+
+Base API prefix: `/api/v1`
+
+- `POST /query`
+- `GET /suggestions`
+- `GET /audit/events`
+- `POST /knowledge/ingest`
+- `POST /knowledge/ingest/file`
+- `GET /knowledge/topics`
+- `POST /calculators/stamp-duty`
+- `POST /calculators/land-rates`
+
+System endpoints:
+
+- `GET /health`
+- `GET /docs`
+
+## Graceful error behavior
+
+Backend now exposes a consistent error envelope for validation, service, and unexpected failures:
+
+```json
+{
+    "error": {
+        "code": "SOME_ERROR_CODE",
+        "message": "Human-readable message",
+        "details": {}
+    }
+}
 ```
 
-## AI Pattern
+Notes:
 
-RAG (Retrieval-Augmented Generation) is the core pattern.
+- Validation errors return `422` with structured `details`.
+- Known service failures return route-specific codes (e.g., `QUERY_FAILED`, `TOPICS_FETCH_FAILED`).
+- Unknown exceptions return `500` with a safe generic message.
 
-This ensures:
-- Answers are grounded in Kenyan legal and procedural sources
-- Hallucination risk is reduced through retrieval + citations
-- Knowledge can be updated without retraining a model
+## Architecture summary
 
-## Implementation Roadmap
+Current style is **modular monolith** (single FastAPI runtime, modular service boundaries).
 
-### Phase 1 (Now)
-- Build modular monolith structure
-- Implement core query endpoint with citation-required responses
-- Add ingestion pipeline for legal knowledge documents
-- Persist audit trail for every legal answer
+Why:
 
-### Phase 2 (Growth)
-- Introduce async workers for heavy ingestion/OCR tasks
-- Add admin workflows for curated legal updates
-- Add reliability patterns (retry, timeout, fallback provider)
+- Faster iteration for MVP/early scale
+- Simpler deployment and debugging
+- Stronger legal traceability and auditability
 
-### Phase 3 (Only if Triggered)
-- Extract document-processing workload into separate service
-- Consider regional deployment splits for compliance/data residency
-- Split control-plane/admin services only when team and traffic justify
+See deeper design docs:
 
-## Scaling Triggers (Service Extraction Gate)
-
-Do **not** split into microservices unless one or more are true:
-- Sustained workload where ingestion jobs degrade interactive query latency
-- Team size and ownership boundaries require independent deploy units
-- Regional regulatory requirements demand isolated runtime/data boundaries
-- Traffic profile demonstrates clear independent scaling needs
-
-See supporting docs:
 - `docs/architecture.md`
 - `docs/scaling-triggers.md`
 - `docs/compliance-audit.md`
 
-## Project Architecture
+## Project structure
 
 ```text
 lands.ai/
-├── backend/                 # FastAPI modular monolith 
-│   ├── src/lands_ai_backend/
-│   │   ├── api/             # HTTP routes
-│   │   ├── core/            # Settings/config
-│   │   ├── schemas/         # Request/response contracts
-│   │   └── services/        # Domain services
-│   └── .env.example
-├── frontend/                # Next.js + Tailwind
-│   ├── app/                 # App router pages/layout
-│   ├── lib/                 # API client
-│   └── .env.example
-└── docs/                    # Architecture and governance docs
+├── backend/
+│   └── src/lands_ai_backend/
+│       ├── api/
+│       ├── core/
+│       ├── schemas/
+│       └── services/
+├── frontend/
+│   ├── app/
+│   └── lib/
+└── docs/
 ```
 
-## Quick Start
+## Local run overview
 
-### Backend (FastAPI)
+### Backend
 
-1. Create Python 3.11+ virtual environment.
-2. Install backend dependencies from `backend/pyproject.toml`.
-3. Copy `backend/.env.example` to `backend/.env` and set values.
-4. Start backend app with `lands_ai_backend.main:app`.
+1. Create/activate Python environment.
+2. Install dependencies from `backend/pyproject.toml`.
+3. Configure `.env` values (database + provider settings).
+4. Run FastAPI app (`lands_ai_backend.main:app`).
 
-Backend endpoints:
-- Health: `/health`
-- API docs: `/docs`
-- Query endpoint: `/api/v1/query`
-
-### Frontend (Next.js)
+### Frontend
 
 1. Install dependencies in `frontend/`.
-2. Copy `frontend/.env.example` to `frontend/.env.local`.
-3. Ensure `NEXT_PUBLIC_API_BASE_URL` points to backend.
-4. Start frontend development server.
+2. Configure `NEXT_PUBLIC_API_BASE_URL`.
+3. Run Next.js app.
 
-## RAG API (Implemented)
+### Docker Compose
 
-- `POST /api/v1/knowledge/ingest` to ingest source documents into pgvector-backed chunks
-- `GET /api/v1/knowledge/topics` to discover available topic/source filters
-- `POST /api/v1/query` to run retrieval + grounded answer generation
-- `GET /api/v1/audit/events` to inspect persisted audit trails
+`docker-compose.yml` provisions:
 
-The query flow now performs:
-1. Embed question
-2. Retrieve candidate chunks from Postgres + pgvector
-3. Hybrid rerank using vector similarity + lexical query overlap + title relevance
-4. Apply citation and evidence-confidence thresholds
-5. Generate grounded answer only when evidence is strong enough (OpenAI-compatible provider when configured; deterministic fallback otherwise)
-6. Persist audit event with citations and confidence
+- `frontend`
+- `backend`
+- `postgres` (`pgvector/pgvector`)
+- `redis`
 
-Quality upgrades now included:
-- sentence/paragraph-aware semantic chunking during ingestion
-- hybrid reranking for stronger relevance than raw vector search alone
-- citation-level retrieval scores and matched query terms
-- optional query-time metadata filters (`source_types`, `topics`)
-- evidence confidence thresholds to suppress weak legal answers
-- optional online fallback research that ingests useful web references into Postgres for future queries
+## Known boundaries
 
-### Online fallback behavior
-
-When local evidence is insufficient, backend can:
-1. Search online reference sources (Wikipedia API by default)
-2. Extract useful content and ingest it into the knowledge base as `web_reference`
-3. Re-run retrieval on the expanded local corpus
-
-This means important discovered context is persisted in Postgres and can improve subsequent related queries.
-
-The query response also exposes:
-- `online_research_used` (boolean)
-- `online_docs_ingested` (integer)
-
-so clients can tell when online fallback was used and whether new references were stored.
-
-## Dockerized Deployment (Isolated)
-
-This repository includes `docker-compose.yml` for isolated local deployment with dedicated containers and network:
-- `frontend` (Next.js)
-- `backend` (FastAPI)
-- `postgres` (`pgvector/pgvector` image)
-- `redis` (reserved for async workloads)
-
-Isolation design:
-- Private compose network `lands_ai_net`
-- Dedicated named volume `lands_ai_pgdata`
-- Service names used internally (`postgres`, `backend`, `redis`) to avoid interference with other projects
-
-## Container Quick Start
-
-1. Ensure Docker Desktop is running.
-2. (Optional) set provider keys in root `.env`.
-3. Build and run compose stack.
-4. Open frontend at `http://localhost:3000`.
-5. Backend docs available at `http://localhost:8000/docs`.
-
-## Notes
-
-- Root `.env` has placeholders for shared local setup.
-- If no provider API key is configured, fallback generation/embeddings are used for local development.
+- Legal outputs are **informational guidance**, not legal advice.
+- Land rates calculator is currently an estimate model (not county valuation-roll exact).
+- Production hardening should include robust async workers for heavy ingestion and stricter operational controls.
